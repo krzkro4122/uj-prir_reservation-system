@@ -7,8 +7,10 @@ import java.util.concurrent.TimeUnit;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.lang.reflect.Array;
 import java.rmi.RemoteException;
-
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -47,25 +49,32 @@ public class ReservationSystem implements Cinema {
 
         this.seats = seats;
         this.timeForConfirmation = timeForConfirmation;
-
+        System.out.println("[configuration] seatsMap(0): " + seatsMap);
         seatsMap = new ConcurrentSkipListMap<>();
-        for (int i = 0; i < this.seats; i++)
-            seatsMap.put(i, null);
+        for (int i = 0; i < this.seats; i++) {
+            seatsMap.put(i, "");
+            unreservedSeats.add(i);
+        }
+        System.out.println("[configuration] seatsMap:(1) " + seatsMap);
     }
 
     @Override
     public Set<Integer> notReservedSeats() {
+        System.out.println("notReservedSeats] unreservedSeats: " + unreservedSeats);
         return unreservedSeats;
     }
 
     @Override
     public boolean reservation(String user, Set<Integer> seats) {
 
-        for (Integer seat : seats) {
-            if ( !unreservedSeats.contains(seat) ) {
+        System.out.println("[reservation]1 seats: " + seats);
+        System.out.println("[reservation]2 unreservedSeats: " + unreservedSeats);
+        System.out.println("[reservation]3 seatsMap: " + seatsMap);
+        System.out.println("[reservation]4 user: " + user);
+
+        for (Integer seat : seats)
+            if ( !unreservedSeats.contains(seat) )
                 return false;
-            }
-        }
 
         // Mark the seats as reserved under the requesting user's username
         unreservedSeats.removeAll(seats);
@@ -82,6 +91,7 @@ public class ReservationSystem implements Cinema {
 
     @Override
     public boolean confirmation(String user) {
+        System.out.println("[confirmation] " + user + "@seatsMap.containsValue: " + seatsMap.containsValue(user));
         if ( seatsMap.containsValue(user) )
             return true;
         return false;
@@ -89,12 +99,13 @@ public class ReservationSystem implements Cinema {
 
     @Override
     public String whoHasReservation(int seat) {
+        System.out.println("[whoHasReservation] seatsMap: " + seatsMap);
         return seatsMap.get(seat);
     }
 
     public static void main(String[] args) {
         ReservationSystem server = new ReservationSystem();
-        server.configuration(5000, 100);
-        System.out.println("GDZIE SIE PATRZYSZ PSZEMO???");
+        server.configuration(100, (long) 500.0);
+        System.out.println("GDZIE SIE PATRZYSZ PSZEMO???"); // TODO
     }
 }
