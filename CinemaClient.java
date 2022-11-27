@@ -36,11 +36,9 @@ class CinemaClient {
 
         System.out.println("Confirming test..." + server.confirmation("test"));
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
             System.out.println("Waiting...");
-        } catch (Exception e) {
-            System.out.println("LOL, maybe not!");
-        }
+        } catch (Exception e) { System.out.println("LOL, maybe not!"); }
         System.out.println("Confirming batw1ngs..." + server.confirmation("batw1ngs"));
 
         System.out.println("whoHasSeat nr1..." + server.whoHasReservation(1));

@@ -7,10 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.lang.reflect.Array;
 import java.rmi.RemoteException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -19,9 +16,11 @@ import java.util.Set;
 public class ReservationSystem implements Cinema {
 
     // Fields
-    int seats;
+    int seatsNum;
     long timeForConfirmation;
 
+    Set<String> expiredUsers;
+    Set<String> confirmedUsers;
     Set<Integer> unreservedSeats;
     ScheduledExecutorService executor;
     ConcurrentSkipListMap<Integer, String> seatsMap;
@@ -40,18 +39,20 @@ public class ReservationSystem implements Cinema {
         }
         // Concurrent set workaround
         unreservedSeats = ConcurrentHashMap.newKeySet();
-
+        confirmedUsers = ConcurrentHashMap.newKeySet();
+        expiredUsers = ConcurrentHashMap.newKeySet();
         executor = Executors.newScheduledThreadPool(8);
     }
 
     @Override
     public void configuration(int seats, long timeForConfirmation) {
 
-        this.seats = seats;
+        this.seatsNum = seats;
         this.timeForConfirmation = timeForConfirmation;
+
         System.out.println("[configuration] seatsMap(0): " + seatsMap);
         seatsMap = new ConcurrentSkipListMap<>();
-        for (int i = 0; i < this.seats; i++) {
+        for (int i = 0; i < this.seatsNum; i++) {
             seatsMap.put(i, "");
             unreservedSeats.add(i);
         }
@@ -60,31 +61,48 @@ public class ReservationSystem implements Cinema {
 
     @Override
     public Set<Integer> notReservedSeats() {
-        System.out.println("notReservedSeats] unreservedSeats: " + unreservedSeats);
+        System.out.println("[notReservedSeats] unreservedSeats: " + unreservedSeats);
         return unreservedSeats;
     }
 
     @Override
     public boolean reservation(String user, Set<Integer> seats) {
 
+        if ( confirmedUsers.contains(user) )
+            return false;
+
         System.out.println("[reservation]1 seats: " + seats);
         System.out.println("[reservation]2 unreservedSeats: " + unreservedSeats);
         System.out.println("[reservation]3 seatsMap: " + seatsMap);
         System.out.println("[reservation]4 user: " + user);
 
-        for (Integer seat : seats)
+        for (Integer seat : seats) {
             if ( !unreservedSeats.contains(seat) )
                 return false;
+            if ( seatsMap.containsValue(user) )
+                return false;
+        }
 
         // Mark the seats as reserved under the requesting user's username
         unreservedSeats.removeAll(seats);
         seats.forEach( (seat) -> { seatsMap.replace(seat, user); });
 
         // Mark the reserved seats as available after the delay
-        executor.schedule(() -> {
-            unreservedSeats.addAll(seats);
+        executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                if ( confirmedUsers.contains(user))
+                    return;
+                System.out.println("[" + Thread.currentThread().getId() + "] unreservedSeats: " + unreservedSeats + ", seats: " + seats);
+                synchronized (this) {
+                    expiredUsers.add(user);
+                    unreservedSeats.addAll(seats);
+
+                    for (int seat : seats)
+                        seatsMap.replace(seat, "");
+                }
+            };
         }, timeForConfirmation, TimeUnit.MILLISECONDS);
-        executor.shutdown();
 
         return true;
     }
@@ -92,19 +110,32 @@ public class ReservationSystem implements Cinema {
     @Override
     public boolean confirmation(String user) {
         System.out.println("[confirmation] " + user + "@seatsMap.containsValue: " + seatsMap.containsValue(user));
-        if ( seatsMap.containsValue(user) )
+
+        if ( confirmedUsers.contains(user))
+            return false;
+        if ( expiredUsers.contains(user) )
+            return false;
+
+        if ( seatsMap.containsValue(user) ){
+            confirmedUsers.add(user);
             return true;
+        }
         return false;
     }
 
     @Override
     public String whoHasReservation(int seat) {
         System.out.println("[whoHasReservation] seatsMap: " + seatsMap);
-        return seatsMap.get(seat);
+        String name = seatsMap.get(seat);
+
+        if ( confirmedUsers.contains(name) )
+            return name;
+
+        return null;
     }
 
     public static void main(String[] args) {
         ReservationSystem server = new ReservationSystem();
-        server.configuration(20, (long) 3000);
+        server.configuration(20, (long) 1000);
     }
 }
