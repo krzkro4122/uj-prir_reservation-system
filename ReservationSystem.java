@@ -28,7 +28,7 @@ public class ReservationSystem implements Cinema {
     ReservationSystem() {
         // RMI init
         try {
-            LocateRegistry.createRegistry(1099); // TODO - create registry???
+            LocateRegistry.createRegistry(1099); // TODO - get this outta here T_T
             Cinema stub =  (Cinema) UnicastRemoteObject.exportObject(this, 0);
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(SERVICE_NAME, stub);
@@ -59,7 +59,7 @@ public class ReservationSystem implements Cinema {
     }
 
     @Override
-    public boolean reservation(String user, Set<Integer> seats) { // TODO - Co jak tylko jedno miejsce sie nie zgadza?
+    public boolean reservation(String user, Set<Integer> seats) {
 
         for (Integer seat : seats) {
             if ( !unreservedSeats.contains(seat) ) {
@@ -81,7 +81,7 @@ public class ReservationSystem implements Cinema {
     }
 
     @Override
-    public boolean confirmation(String user) { // TODO - Co potem sie dzieje z miejscem???
+    public boolean confirmation(String user) {
         if ( seatsMap.containsValue(user) )
             return true;
         return false;
@@ -95,5 +95,6 @@ public class ReservationSystem implements Cinema {
     public static void main(String[] args) {
         ReservationSystem server = new ReservationSystem();
         server.configuration(5000, 100);
+        System.out.println("GDZIE SIE PATRZYSZ PSZEMO???");
     }
 }
