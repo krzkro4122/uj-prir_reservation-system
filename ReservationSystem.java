@@ -41,7 +41,7 @@ public class ReservationSystem implements Cinema {
         // Concurrent set workaround
         unreservedSeats = ConcurrentHashMap.newKeySet();
 
-        executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newScheduledThreadPool(8);
     }
 
     @Override
@@ -105,7 +105,6 @@ public class ReservationSystem implements Cinema {
 
     public static void main(String[] args) {
         ReservationSystem server = new ReservationSystem();
-        server.configuration(100, (long) 500.0);
-        System.out.println("GDZIE SIE PATRZYSZ PSZEMO???"); // TODO
+        server.configuration(20, (long) 3000);
     }
 }
