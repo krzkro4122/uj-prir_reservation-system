@@ -1,0 +1,56 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Launch CinemaClient",
+            "request": "launch",
+            "mainClass": "CinemaClient",
+            "projectName": "ReservationSystem_415df2c9"
+        },
+        {
+            "type": "java",
+            "name": "Launch Client",
+            "request": "launch",
+            "mainClass": "Client",
+            "projectName": "ReservationSystem_415df2c9"
+        },
+        {
+            "type": "java",
+            "name": "Launch MessengerServiceImpl",
+            "request": "launch",
+            "mainClass": "MessengerServiceImpl",
+            "projectName": "ReservationSystem_415df2c9"
+        },
+        {
+            "type": "java",
+            "name": "Launch RegistryFactory",
+            "request": "launch",
+            "mainClass": "RegistryFactory",
+            "projectName": "ReservationSystem_415df2c9"
+        },
+        {
+            "type": "java",
+            "name": "Launch ReservationSystem",
+            "request": "launch",
+            "mainClass": "ReservationSystem",
+            "projectName": "ReservationSystem_415df2c9"
+        },
+        {
+            "type": "java",
+            "name": "Launch ReservationSystemStub",
+            "request": "launch",
+            "mainClass": "ReservationSystemStub",
+            "projectName": "ReservationSystem_415df2c9"
+        }
+    ]
+}
