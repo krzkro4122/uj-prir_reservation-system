@@ -29,7 +29,7 @@ public class ReservationSystem implements Cinema {
     ReservationSystem() {
         // RMI init
         try {
-            LocateRegistry.createRegistry(1099); // TODO - get this outta here T_T
+            // LocateRegistry.createRegistry(1099);
             Cinema stub =  (Cinema) UnicastRemoteObject.exportObject(this, 0);
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(SERVICE_NAME, stub);

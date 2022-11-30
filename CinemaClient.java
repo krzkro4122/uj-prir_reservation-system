@@ -1,4 +1,3 @@
-import java.util.concurrent.ConcurrentHashMap;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.NotBoundException;
@@ -7,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.List;
-import java.util.Set;
 
 class CinemaClient {
     private static class Customer {
