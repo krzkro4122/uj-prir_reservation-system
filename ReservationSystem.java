@@ -19,7 +19,6 @@ public class ReservationSystem implements Cinema {
     int seatsNum;
     long timeForConfirmation;
 
-    Set<String> expiredUsers;
     Set<String> confirmedUsers;
     Set<Integer> unreservedSeats;
     ScheduledExecutorService executor;
@@ -30,7 +29,7 @@ public class ReservationSystem implements Cinema {
         // RMI init
         try {
             // LocateRegistry.createRegistry(1099);
-            Cinema stub =  (Cinema) UnicastRemoteObject.exportObject(this, 0);
+            Cinema stub = (Cinema) UnicastRemoteObject.exportObject(this, 0);
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(SERVICE_NAME, stub);
         } catch (RemoteException e) {
@@ -45,7 +44,6 @@ public class ReservationSystem implements Cinema {
         // Concurrent set workaround
         unreservedSeats = ConcurrentHashMap.newKeySet();
         confirmedUsers = ConcurrentHashMap.newKeySet();
-        expiredUsers = ConcurrentHashMap.newKeySet();
         executor = Executors.newScheduledThreadPool(8);
 
         this.seatsNum = seats;
@@ -62,8 +60,10 @@ public class ReservationSystem implements Cinema {
 
     @Override
     public synchronized Set<Integer> notReservedSeats() {
+
         System.out.println("[notReservedSeats] unreservedSeats: " + unreservedSeats);
         return unreservedSeats;
+
     }
 
     @Override
@@ -93,13 +93,12 @@ public class ReservationSystem implements Cinema {
             @Override
             public synchronized void run() {
 
-                if ( confirmedUsers.contains(user))
+                if ( confirmedUsers.contains(user) )
                     return;
 
                 System.out.println("-- EXPIRED -- user: " + user);
                 System.out.println("[" + Thread.currentThread().getId() + "] confirmedUsers: " + confirmedUsers);
                 System.out.println("[" + Thread.currentThread().getId() + "] unreservedSeats: " + unreservedSeats + ", seats: " + seats);
-                expiredUsers.add(user);
                 unreservedSeats.addAll(seats);
 
                 for (int seat : seats)
@@ -116,8 +115,6 @@ public class ReservationSystem implements Cinema {
         System.out.println("\t[confirmation] " + user + "@seatsMap.containsValue: " + seatsMap.containsValue(user));
 
         if ( confirmedUsers.contains(user))
-            return false;
-        if ( expiredUsers.contains(user) )
             return false;
 
         if ( seatsMap.containsValue(user) ){

@@ -71,10 +71,10 @@ class CinemaClient {
     private static boolean UserCreatesSubscription(String userName, List<Integer> seats, Cinema reservationSystem) {
         try {
             if (reservationSystem.reservation(userName, new HashSet<>(seats))) {
-                System.out.println("Reservation created successfully for user: " + userName);
+                System.out.println("[Reservation] [created] successfully for user: " + userName);
                 return true;
             } else {
-                System.out.println("Reservation could not be created for user: " + userName);
+                System.out.println("[Reservation] [not created] for user: " + userName);
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -85,10 +85,10 @@ class CinemaClient {
     private static boolean UserConfirmsSubscription(String userName, Cinema reservationSystem) {
         try {
             if (reservationSystem.confirmation(userName)) {
-                System.out.println("Reservation successfully confirmed for user: " + userName);
+                System.out.println("[Reservation] [CONFIRMED] successfully for user: " + userName);
                 return true;
             } else {
-                System.out.println("Reservation could not be confirmed for user: " + userName);
+                System.out.println("[Reservation] [NOT CONFIRMED] for user: " + userName);
             }
 
         } catch (Exception e) {
