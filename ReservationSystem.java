@@ -104,6 +104,9 @@ public class ReservationSystem implements Cinema {
 
         }
 
+        if ( confirmedUsers.contains(user) )
+            return false;
+
         // Mark the seats as reserved under the requesting user's username
         cuckedUsers.remove(user);
         expiredUsers.remove(user);
@@ -122,6 +125,10 @@ public class ReservationSystem implements Cinema {
                 System.out.println("-- EXPIRED -- user: " + user);
                 System.out.println("[" + Thread.currentThread().getId() + "] confirmedUsers: " + confirmedUsers);
                 System.out.println("[" + Thread.currentThread().getId() + "] unreservedSeats: " + unreservedSeats + ", seats: " + seats);
+
+                if ( confirmedUsers.contains(user) )
+                    return;
+
                 expiredUsers.add(user);
                 unreservedSeats.addAll(seats);
 
