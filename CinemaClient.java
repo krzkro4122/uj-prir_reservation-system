@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
+
 import java.util.List;
 
 class CinemaClient {
@@ -65,6 +66,22 @@ class CinemaClient {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+        System.out.print("[END] {\n");
+        try {
+            List.of(1, 2, 3, 4, 5).forEach((element) -> {
+                try {
+                    System.out.print("\t" + element + ": " + reservationSystem.whoHasReservation(element) + ",\n");
+                } catch (RemoteException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            });
+            System.out.print("} - ");
+            System.out.println("unreservedSeats: " + reservationSystem.notReservedSeats());
+        } catch (RemoteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        };
         System.out.println("\n");
     }
 
