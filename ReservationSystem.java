@@ -1,84 +1,108 @@
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import java.rmi.server.UnicastRemoteObject;
+
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+
 import java.rmi.RemoteException;
-import java.util.Map.Entry;
+
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-/**
- * ReservationSystem
- */
+
 public class ReservationSystem implements Cinema {
 
-    // Fields
-    int seatsNum;
-    long timeForConfirmation;
+    // F I E L D S
 
-    Set<String> cuckedUsers;
-    Set<String> expiredUsers;
-    Set<String> confirmedUsers;
-    Set<Integer> unreservedSeats;
-    ConcurrentSkipListMap<Integer, String> seatsMap;
+    private ScheduledExecutorService executor;
+    private Set<Integer> unreservedSeats;
+    private long timeForConfirmation;
+    private ArrayList<Order> orders;
 
-    ScheduledExecutorService executor;
+    // M E M B E R   C L A S S E S
 
-    // Methods
+    private class Order {
+
+        public String username;
+        public Set<Integer> wantedSeats;
+
+        public boolean afterExpiry = false;
+        public boolean afterConfirmation = false;
+
+        public Order(Set<Integer> wantedSeats, String username) {
+
+            this.wantedSeats = wantedSeats;
+            this.username = username;
+
+            Order concreteOrder = this;
+
+            // Set the order's timeout
+            executor.schedule(new Runnable() {
+
+                @Override
+                public synchronized void run() {
+
+                    if ( concreteOrder.afterConfirmation ) {
+
+                        return;
+                    }
+
+                    unreservedSeats.addAll(concreteOrder.wantedSeats);
+                    concreteOrder.afterExpiry = true;
+                }
+
+            }, timeForConfirmation, TimeUnit.MILLISECONDS);
+
+        }
+
+    }
+
+    // M E T H O D S
+
     ReservationSystem() {
 
         // RMI init
         try {
+
             Cinema stub = (Cinema) UnicastRemoteObject.exportObject(this, 0);
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(SERVICE_NAME, stub);
 
-        } catch (RemoteException e) {
+        } catch ( RemoteException e ) {
 
             System.err.println("RMI-related reservation system exception:");
             e.printStackTrace();
 
         }
+
     }
 
     @Override
-    public synchronized void configuration(int seats, long timeForConfirmation) {
+    public void configuration(int seats, long timeForConfirmation) {
 
-        System.out.println("");
-        System.out.println("");
+        this.timeForConfirmation = timeForConfirmation;
 
-        executor = Executors.newScheduledThreadPool(8);
+        orders = new ArrayList<Order>(seats);
 
         // Concurrent set workaround
         unreservedSeats = ConcurrentHashMap.newKeySet();
-        confirmedUsers = ConcurrentHashMap.newKeySet();
-        expiredUsers = ConcurrentHashMap.newKeySet();
-        cuckedUsers = ConcurrentHashMap.newKeySet();
-        seatsMap = new ConcurrentSkipListMap<>();
 
-        this.seatsNum = seats;
-        this.timeForConfirmation = timeForConfirmation;
+        for ( int i = 0; i < seats; i++ ) {
 
-        for (int i = 0; i < this.seatsNum; i++) {
-
-            seatsMap.put(i, "");
             unreservedSeats.add(i);
 
         }
 
+        executor = new ScheduledThreadPoolExecutor(8);
     }
 
     @Override
     public synchronized Set<Integer> notReservedSeats() {
 
-        System.out.println("\t\t[notReservedSeats]: " + unreservedSeats);
         return unreservedSeats;
 
     }
@@ -86,55 +110,20 @@ public class ReservationSystem implements Cinema {
     @Override
     public synchronized boolean reservation(String user, Set<Integer> seats) {
 
-        System.out.println("[RES] unreservedSeats: " + unreservedSeats);
+        for ( int seat : seats ) {
 
-        if ( confirmedUsers.contains(user) )
-            return false;
+            if ( unreservedSeats.contains(seat) ) {
 
-        List<String> whoToCuck = new ArrayList<>();
+                continue;
 
-        for (Integer seat : seats) {
-
-            if ( !unreservedSeats.contains(seat) )
-                return false;
-
-            if ( seatsMap.get(seat) != "" ) {
-                if ( expiredUsers.contains(seatsMap.get(seat)) )
-                    whoToCuck.add(seatsMap.get(seat));
             }
+
+            return false;
 
         }
 
-        if ( confirmedUsers.contains(user) )
-            return false;
-
-        // Mark the seats as reserved under the requesting user's username
-        cuckedUsers.remove(user);
-        cuckedUsers.addAll(whoToCuck);
-        expiredUsers.remove(user);
+        orders.add(new Order(seats, user));
         unreservedSeats.removeAll(seats);
-        seats.forEach( (seat) -> { seatsMap.replace(seat, user); });
-
-        // Mark the reserved seats as available after the delay
-        executor.schedule(new Runnable() {
-
-            @Override
-            public synchronized void run() {
-
-                if ( confirmedUsers.contains(user) )
-                    return;
-
-                expiredUsers.add(user);
-                unreservedSeats.addAll(seats);
-
-                System.out.println("-- EXPIRED -- user: " + user);
-
-                // for (int seat : seats)
-                //     seatsMap.replace(seat, "");
-
-            };
-
-        }, timeForConfirmation, TimeUnit.MILLISECONDS);
 
         return true;
     }
@@ -142,80 +131,73 @@ public class ReservationSystem implements Cinema {
     @Override
     public synchronized boolean confirmation(String user) {
 
-        System.out.println("");
-        System.out.println("\t[CON] unreservedSeats: " + unreservedSeats);
-        System.out.println("\t[CON] " + user + "@seatsMap.containsValue: " + seatsMap.containsValue(user));
-        System.out.println("\t[CON] confirmedUsers: " + confirmedUsers);
-        System.out.println("\t[CON] cuckedUsers: " + cuckedUsers);
+        for ( Order order : orders ) {
 
-        if ( confirmedUsers.contains(user) )
-            return false;
+            if ( order.username.equals(user) ) {
 
-        // if (expiredUsers.contains(user) && !seatsMap.containsValue(user) ) {
-        //     return false;
-        // }
+                if ( order.afterExpiry ) {
 
-        if (cuckedUsers.contains(user)) {
-            return false;
-        }
+                    for ( int seat : order.wantedSeats ) {
 
-        if ( seatsMap.containsValue(user) ) {
+                        if ( ! unreservedSeats.contains(seat) ) {
 
-            System.out.println("\tSuccessfull confirmation! user: " + user);
+                            orders.remove(order);
 
-            confirmedUsers.add(user);
-            expiredUsers.remove(user);
+                            return false;
 
-            var seatsToFreeUp = List.of();
+                        }
 
-            for (int i = 0; i < seatsMap.size(); i++) {
-                if (seatsMap.get(i) == user) {
-                    seatsToFreeUp.add(i);
+                    }
+
                 }
+
+                order.afterConfirmation = true;
+                unreservedSeats.removeAll(order.wantedSeats);
+
+                return true;
+
             }
 
-            unreservedSeats.removeAll(seatsToFreeUp);
-
-            return true;
-
         }
+
         return false;
     }
 
     @Override
     public synchronized String whoHasReservation(int seat) {
-        System.out.println("[whoHasReservation] seatsMap: " + seatsMap);
-        String name = seatsMap.get(seat);
 
-        if ( confirmedUsers.contains(name) )
-            return name;
+        for ( Order order : orders ) {
+
+            if ( order.wantedSeats.contains(seat) ) {
+
+                if ( order.afterConfirmation ) {
+
+                    return order.username;
+
+                }
+
+            }
+
+        }
 
         return null;
     }
+
+    // M A I N
 
     public static void main(String[] args) {
 
         try {
+
             LocateRegistry.createRegistry(1099);
-        } catch (RemoteException re) {
+
+        } catch ( RemoteException re ) {
+
             System.err.println(re);
+
         }
 
         ReservationSystem server = new ReservationSystem();
         server.configuration(10, (long) 1000);
-
-    }
-
-    public <K, V> K getKey(Map<K, V> map, V value) {
-
-        for (Entry<K, V> entry : map.entrySet()) {
-
-            if (entry.getValue().equals(value)) {
-
-                return entry.getKey();
-
-            }
-        }
-        return null;
     }
 }
